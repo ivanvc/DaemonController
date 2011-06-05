@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>DaemonController.m</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>DaemonController.m</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-1">&#182;</a>
+        </div>
+        <p> <!-- DaemonController -->
+ Based in <em>DaemonController</em> by <a href="http://github.com/mxcl/playdar.prefpane">Max Howell</a>.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-2">&#182;</a>
+        </div>
+        <p><strong>DaemonController</strong> is a tool to monitor daemons using Objective C, that are
+running in the system. The idea is to keep it simple, and provide methods to
+start, and stop a given daemon. It also watches for the PID, in order to give
+feedback about when the process is stopped by an external tool.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Installation'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Installation">&#182;</a>
+        </div>
+        <h2>Installation</h2>
+
+<p>To install, just add the DaemonController.h and DaemonController.m files to your
+project. Then, be shure to add DaemonController.m to your selected target.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Usage'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Usage">&#182;</a>
+        </div>
+        <h2>Usage</h2>
+
+<p>Just include the DaemonController.h file in your Class:</p>
+
+<pre><code>include "DaemonController.h";
+</code></pre>
+
+<p>Then, create an instance of it</p>
+
+<pre><code>DaemonController *daemonController = [[DaemonController alloc]
+  init];
+</code></pre>
+
+<p>Set the launch path for the Daemon to watch:</p>
+
+<pre><code>daemonController.launchPath =
+  @"/usr/local/Cellar/mysql/5.1.56/libexec/mysqld";
+</code></pre>
+
+<p>Set the initialization arguments, if any:</p>
+
+<pre><code>daemonController.startArguments = [NSArray arrayWithObjects:
+  @"--basedir=/usr/local/Cellar/mysql/5.1.56",
+  @"--datadir=/usr/local/var/mysql",
+  @"--log-error=/usr/local/var/mysql/localjost.local.err",
+  @"--pid-file=/usr/local/var/mysql/localjost.local.pid", nil];
+</code></pre>
+
+<p>Finally,  there&rsquo;s an especial list of arguments in order to stop the daemon:</p>
+
+<pre><code>daemonController.stopArguments = [NSArrary arrayWithObjects:
+  @"stop", nil];
+</code></pre>
+
+<p>That&rsquo;s it. In order to get notifications about the status of the process, just set the
+block callbacks for any operation you need. Please refer to the <a href="#section-Callbacks">Callbacks</a>
+section in order to get more information on how to add them.</p>
+
+<p>To control the daemon, there are two simple tasks, start and stop. Please refer to the
+<a href="#section-Control_Tasks">Control Tasks</a> for more information.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="cp">#import &lt;sys/sysctl.h&gt;</span>
+<span class="cp">#import &quot;DaemonController.h&quot;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Hidden_Methods'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Hidden_Methods">&#182;</a>
+        </div>
+        <h2>Hidden Methods</h2>
+
+<p>Here are the instance variables and methods used internally to control the Daemon.</p>
+
+<p>The binary name is stored in order to get the PID of the daemon.</p>
+
+<p>There&rsquo;s a reference to a poll timer, if it is not running yet, it will poll for it
+until there&rsquo;s a running process of it.</p>
+
+<p>The daemon task holds the active task, in case that the daemon was initialized by us.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@interface</span> <span class="nc">DaemonController</span><span class="p">(</span><span class="cm">/* Hidden Methods */</span><span class="p">)</span>
+<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">retain</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">binaryName</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">retain</span><span class="p">)</span> <span class="n">NSTimer</span>  <span class="o">*</span><span class="n">pollTimer</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">retain</span><span class="p">)</span> <span class="n">NSTask</span>   <span class="o">*</span><span class="n">daemonTask</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">retain</span><span class="p">)</span> <span class="n">NSTimer</span>  <span class="o">*</span><span class="n">checkStartupStatusTimer</span><span class="p">;</span>
+
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">startPoll</span><span class="p">;</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">daemonTerminatedFromQueue</span><span class="p">;</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">daemonTerminated:</span><span class="p">(</span><span class="n">NSNotification</span><span class="o">*</span><span class="p">)</span><span class="n">notification</span><span class="p">;</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">initDaemonTask</span><span class="p">;</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">poll:</span><span class="p">(</span><span class="n">NSTimer</span><span class="o">*</span><span class="p">)</span><span class="n">timer</span><span class="p">;</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">failedToStartDaemonTask:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="n">reason</span><span class="p">;</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">checkIfDaemonIsRunning</span><span class="p">;</span>
+<span class="o">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="n">didStopWithArguments</span><span class="p">;</span>
+<span class="k">@end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-C_Methods'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-C_Methods">&#182;</a>
+        </div>
+        <h2>C Methods</h2>
+
+<p>Checks for the PID of a given daemon. If it&rsquo;s running, it will return the
+PID. If not, it will return 0.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">static</span> <span class="n">pid_t</span> <span class="nf">daemon_pid</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">binary</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">mib</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">CTL_KERN</span><span class="p">,</span> <span class="n">KERN_PROC</span><span class="p">,</span> <span class="n">KERN_PROC_ALL</span><span class="p">,</span> <span class="mi">0</span> <span class="p">};</span>
+  <span class="k">struct</span> <span class="n">kinfo_proc</span> <span class="o">*</span><span class="n">info</span><span class="p">;</span>
+  <span class="n">size_t</span> <span class="n">totalTasks</span><span class="p">;</span>
+  <span class="n">pid_t</span> <span class="n">pid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-7">&#182;</a>
+        </div>
+        <p>Means that there are no running tasks. Very unlikely.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">sysctl</span><span class="p">(</span><span class="n">mib</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">totalTasks</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-8">&#182;</a>
+        </div>
+        <p>Not able to allocate the memory. Unlikey.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">info</span> <span class="o">=</span> <span class="n">NSZoneMalloc</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">totalTasks</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">sysctl</span><span class="p">(</span><span class="n">mib</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">totalTasks</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-9">&#182;</a>
+        </div>
+        <p>Search for the process id that matches the name of our daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">totalTasks</span> <span class="o">=</span> <span class="n">totalTasks</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">kinfo_proc</span><span class="p">);</span>
+    <span class="k">for</span><span class="p">(</span><span class="n">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">totalTasks</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-10'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-10">&#182;</a>
+        </div>
+        <p>If found, store it in pid.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">if</span><span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">kp_proc</span><span class="p">.</span><span class="n">p_comm</span><span class="p">,</span> <span class="n">binary</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">kp_proc</span><span class="p">.</span><span class="n">p_pid</span><span class="p">;</span>
+        <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="n">NSZoneFree</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">info</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">pid</span><span class="p">;</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-11'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-11">&#182;</a>
+        </div>
+        <p>Watches for termination of the process, doing a watch in its kernel event.
+Calls daemonTerminatedFromQueue whenever it happens, as a CFFileDescriptor
+provides just one callback, the call invalidates the current one.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">static</span> <span class="kt">void</span> <span class="nf">kqueue_termination_callback</span><span class="p">(</span><span class="n">CFFileDescriptorRef</span> <span class="n">f</span><span class="p">,</span> <span class="n">CFOptionFlags</span> <span class="n">callBackTypes</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">self</span><span class="p">)</span> <span class="p">{</span>
+  <span class="p">[(</span><span class="kt">id</span><span class="p">)</span><span class="n">self</span> <span class="nl">performSelector:</span><span class="k">@selector</span><span class="p">(</span><span class="n">daemonTerminatedFromQueue</span><span class="p">)];</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-12'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-12">&#182;</a>
+        </div>
+        <p>Returns a CFFileDescriptor that is the reference for the callback whenever the status of
+the process has changed.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">static</span> <span class="kr">inline</span> <span class="n">CFFileDescriptorRef</span> <span class="nf">kqueue_watch_pid</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">id</span> <span class="n">self</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span>                     <span class="n">kq</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">kevent</span>           <span class="n">changes</span><span class="p">;</span>
+  <span class="n">CFFileDescriptorContext</span> <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span> <span class="n">self</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">};</span>
+  <span class="n">CFRunLoopSourceRef</span>      <span class="n">rls</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-13'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-13">&#182;</a>
+        </div>
+        <p>Create the kqueue and set it up to watch for SIGCHLD. Use the
+new-in-10.5 EV_RECEIPT flag to ensure that we get what we expect.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">kq</span> <span class="o">=</span> <span class="n">kqueue</span><span class="p">();</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-14'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-14">&#182;</a>
+        </div>
+        <p>Sets the kernel event watcher, to use the process id, and to notify when the
+process exits.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">EV_SET</span><span class="p">(</span><span class="o">&amp;</span><span class="n">changes</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">EVFILT_PROC</span><span class="p">,</span> <span class="n">EV_ADD</span> <span class="o">|</span> <span class="n">EV_RECEIPT</span><span class="p">,</span> <span class="n">NOTE_EXIT</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">kevent</span><span class="p">(</span><span class="n">kq</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">changes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">changes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-15'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-15">&#182;</a>
+        </div>
+        <p>Wrap the kqueue in a CFFileDescriptor (new in Mac OS X 10.5!). Then
+create a run-loop source from the CFFileDescriptor and add that to the
+runloop.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">CFFileDescriptorRef</span> <span class="n">ref</span><span class="p">;</span>
+  <span class="n">ref</span> <span class="o">=</span> <span class="n">CFFileDescriptorCreate</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">kq</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">kqueue_termination_callback</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">context</span><span class="p">);</span>
+  <span class="n">rls</span> <span class="o">=</span> <span class="n">CFFileDescriptorCreateRunLoopSource</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">CFRunLoopAddSource</span><span class="p">(</span><span class="n">CFRunLoopGetCurrent</span><span class="p">(),</span> <span class="n">rls</span><span class="p">,</span> <span class="n">kCFRunLoopDefaultMode</span><span class="p">);</span>
+  <span class="n">CFRelease</span><span class="p">(</span><span class="n">rls</span><span class="p">);</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-16'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-16">&#182;</a>
+        </div>
+        <p>Enable the callback, and return the created CFFileDescriptor.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">CFFileDescriptorEnableCallBacks</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">kCFFileDescriptorReadCallBack</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">ref</span><span class="p">;</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Public_properties'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Public_properties">&#182;</a>
+        </div>
+        <h2>Public properties</h2>
+
+<p>There&rsquo;s three properties that are important in order to start, stop, run and monitor
+a daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@implementation</span> <span class="nc">DaemonController</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-18'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-18">&#182;</a>
+        </div>
+        <p>The launchPath is the daemon binary&rsquo;s absolute location.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">launchPath</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-19'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-19">&#182;</a>
+        </div>
+        <p>If the daemon needs any special arguments to be started, this is the array where
+they should be.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">startArguments</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-20'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-20">&#182;</a>
+        </div>
+        <p>If it needs arguments to stop it, they should be in this array.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">stopArguments</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Private_properties'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Private_properties">&#182;</a>
+        </div>
+        <h2>Private properties</h2>
+
+<p>The DaemonController, stores the name of the binary. It is needed in order to get its PID.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">binaryName</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-22'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-22">&#182;</a>
+        </div>
+        <p>If the daemon is not running, the pollTimer will be executed until it starts. Then it will
+be invalidated, and the watch will be switched to the process id observation.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">pollTimer</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-23'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-23">&#182;</a>
+        </div>
+        <p>If we start the daemon, the task is stored in this property.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">daemonTask</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-24'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-24">&#182;</a>
+        </div>
+        <p>When the daemon is started, this timer is used to check when it really starts, assuming it
+will take some time to start up.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">checkStartupStatusTimer</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Callbacks'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Callbacks">&#182;</a>
+        </div>
+        <h2>Callbacks</h2>
+
+<p>In order to notify about the status of the deamon, there are some defined blocks.
+The definition of the blocks is the following:</p>
+
+<pre><code>typedef void (^DaemonStarted)(NSNumber *);
+typedef void (^DaemonStopped)();
+typedef void (^DaemonIsStarting)();
+typedef void (^DaemonIsStopping)();
+typedef void (^DaemonFailedToStart)(NSString *);
+typedef void (^DaemonFailedToStop)(NSString *);
+</code></pre>
+
+<p>Whenever the daemon is started this notification is called. The block receives an NSNumber,
+this is the PID of the started daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">daemonStartedCallback</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-26'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-26">&#182;</a>
+        </div>
+        <p>When the daemon is stopped, this callback is called.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">daemonStoppedCallback</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-27'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-27">&#182;</a>
+        </div>
+        <p>When the daemon is going to be started or stopped, these callbacks are called.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">daemonIsStartingCallback</span><span class="p">;</span>
+<span class="k">@synthesize</span> <span class="n">daemonIsStoppingCallback</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-28'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-28">&#182;</a>
+        </div>
+        <p>When the daemon failes to start or stop, these callbacks are called, passing an NSString,
+that contains the reason of the failure.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">@synthesize</span> <span class="n">daemonFailedToStartCallback</span><span class="p">;</span>
+<span class="k">@synthesize</span> <span class="n">daemonFailedToStopCallback</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Control_Tasks'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Control_Tasks">&#182;</a>
+        </div>
+        <h2>Control Tasks</h2>
+
+<p>These are the public methods, that control a daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="cp">#pragma mark - Daemon control tasks</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-30'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-30">&#182;</a>
+        </div>
+        <p>Starts the daemon. Calls to daemonIsStartingCallback, and optionally to
+daemonFailedToStartCallback if it failed to start, or daemonStartedCallback if it
+successfully started.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">start</span> <span class="p">{</span>
+  <span class="k">@try</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-31'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-31">&#182;</a>
+        </div>
+        <p>Initialize the daemonTask. Set the launchPath to the one from the properties.
+If there are any launch arguments, then set them, else set an empty array.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="p">[</span><span class="n">self</span> <span class="n">initDaemonTask</span><span class="p">];</span>
+    <span class="n">daemonTask</span><span class="p">.</span><span class="n">launchPath</span> <span class="o">=</span> <span class="n">launchPath</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">startArguments</span><span class="p">)</span>
+      <span class="n">daemonTask</span><span class="p">.</span><span class="n">arguments</span> <span class="o">=</span> <span class="n">startArguments</span><span class="p">;</span>
+    <span class="k">else</span>
+      <span class="n">daemonTask</span><span class="p">.</span><span class="n">arguments</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSArray</span> <span class="n">array</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-32'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-32">&#182;</a>
+        </div>
+        <p>Observe the task for its termination.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="p">[[</span><span class="n">NSNotificationCenter</span> <span class="n">defaultCenter</span><span class="p">]</span> <span class="nl">addObserver:</span><span class="n">self</span> <span class="nl">selector:</span><span class="k">@selector</span><span class="p">(</span><span class="nl">daemonTerminated:</span><span class="p">)</span> <span class="nl">name:</span><span class="n">NSTaskDidTerminateNotification</span> <span class="nl">object:</span><span class="n">daemonTask</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">daemonTask</span> <span class="n">launch</span><span class="p">];</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">daemonTask</span><span class="p">.</span><span class="n">processIdentifier</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-33'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-33">&#182;</a>
+        </div>
+        <p>Continuosly check that the daemon is up and running after a delay of 0.2s.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">self</span><span class="p">.</span><span class="n">checkStartupStatusTimer</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSTimer</span> <span class="nl">scheduledTimerWithTimeInterval:</span><span class="mf">0.2</span> <span class="nl">target:</span><span class="n">self</span> <span class="nl">selector:</span><span class="k">@selector</span><span class="p">(</span><span class="nl">checkIfDaemonIsRunning:</span><span class="p">)</span> <span class="nl">userInfo:</span><span class="nb">nil</span> <span class="nl">repeats:</span><span class="n">true</span><span class="p">];</span>
+  <span class="p">}</span> <span class="k">@catch</span> <span class="p">(</span><span class="n">NSException</span> <span class="o">*</span><span class="n">exception</span><span class="p">)</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-34'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-34">&#182;</a>
+        </div>
+        <p>If there&rsquo;s an exception while trying to initialize the daemon, then
+notify about the problem.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="p">[</span><span class="n">self</span> <span class="nl">failedToStartDaemonTask:</span><span class="n">exception</span><span class="p">.</span><span class="n">reason</span><span class="p">];</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-35'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-35">&#182;</a>
+        </div>
+        <p>Stops the daemon. Calls to daemonIsStoppingCallback if there are arguments to stop the daemon.
+Will call, daemonFailedToStopCallback if it failed to stop the daemon, or
+daemonStoppedCallback if it was sucessfull.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">stop</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-36'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-36">&#182;</a>
+        </div>
+        <p>First if there are stop arguments, then try to stop it.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">stopArguments</span> <span class="o">&amp;&amp;</span> <span class="p">[</span><span class="n">self</span> <span class="n">didStopWithArguments</span><span class="p">])</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">daemonIsStoppingCallback</span><span class="p">)</span>
+      <span class="n">daemonIsStoppingCallback</span><span class="p">();</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-37'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-37">&#182;</a>
+        </div>
+        <p>The kqueue event will tell us eventually when the process exits.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-38'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-38">&#182;</a>
+        </div>
+        <p>If we have it running, then terminate the task.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">daemonTask</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">[</span><span class="n">daemonTask</span> <span class="n">terminate</span><span class="p">];</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">daemonIsStoppingCallback</span><span class="p">)</span>
+      <span class="n">daemonIsStoppingCallback</span><span class="p">();</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-39'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-39">&#182;</a>
+        </div>
+        <p>If not, get the PID from the daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">pid</span> <span class="o">=</span> <span class="n">daemon_pid</span><span class="p">([</span><span class="n">binaryName</span> <span class="n">UTF8String</span><span class="p">]);</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">daemon_pid</span><span class="p">([</span><span class="n">binaryName</span> <span class="n">UTF8String</span><span class="p">]))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-40'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-40">&#182;</a>
+        </div>
+        <p>The daemon wasn&rsquo;t running, start the polling to check whenever it starts.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="p">[</span><span class="n">self</span> <span class="n">startPoll</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">daemonStoppedCallback</span><span class="p">)</span>
+        <span class="n">daemonStoppedCallback</span><span class="p">();</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-41'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-41">&#182;</a>
+        </div>
+        <p>If it is running, ans is not our task, and we don&rsquo;t have the arguments to stop it.
+Then kill it, if for some reason it fails, then call the appropiate callback.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">if</span> <span class="p">(</span><span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">SIGTERM</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">errno</span> <span class="o">!=</span> <span class="n">ESRCH</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">daemonFailedToStopCallback</span><span class="p">)</span>
+          <span class="n">daemonFailedToStopCallback</span><span class="p">(</span><span class="s">@&quot;Failed to stop and kill the daemon.&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-42'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-42">&#182;</a>
+        </div>
+        <p>Returns the process id from the daemon, or 0 if not running.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="n">NSNumber</span> <span class="o">*</span><span class="p">)</span><span class="n">pid</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">NSNumber</span> <span class="nl">numberWithInt:</span><span class="n">pid</span><span class="p">];</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-43'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-43">&#182;</a>
+        </div>
+        <p>Returns if the daemon is running.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="n">running</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">self</span><span class="p">.</span><span class="n">pid</span> <span class="n">boolValue</span><span class="p">];</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Internal_Daemon_Control_Tasks'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Internal_Daemon_Control_Tasks">&#182;</a>
+        </div>
+        <h2>Internal Daemon Control Tasks</h2>
+
+<p>The following are internal methods (a.k.a hidden methods) to keep control of the daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="cp">#pragma mark - Internal Daemon Tasks</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-45'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-45">&#182;</a>
+        </div>
+        <p>Initializes the daemonTask. Also invalidates the pollTimer, since it&rsquo;s useless to keep it
+polling for the PID of the daemon, when we already started it.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">initDaemonTask</span> <span class="p">{</span>
+  <span class="p">[</span><span class="n">pollTimer</span> <span class="n">invalidate</span><span class="p">];</span>
+  <span class="n">self</span><span class="p">.</span><span class="n">pollTimer</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-46'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-46">&#182;</a>
+        </div>
+        <p>Calls the daemonIsStartingCallback, if set.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">daemonIsStartingCallback</span><span class="p">)</span>
+    <span class="n">daemonIsStartingCallback</span><span class="p">();</span>
+
+  <span class="n">NSTask</span> <span class="o">*</span><span class="n">task</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSTask</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-47'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-47">&#182;</a>
+        </div>
+        <p>Assigsns the daemonTask property.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">self</span><span class="p">.</span><span class="n">daemonTask</span> <span class="o">=</span> <span class="n">task</span><span class="p">;</span>
+  <span class="p">[</span><span class="n">task</span> <span class="n">release</span><span class="p">];</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-48'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-48">&#182;</a>
+        </div>
+        <p>Called when the daemon was terminated from the kernel event watcher.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">daemonTerminatedFromQueue</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-49'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-49">&#182;</a>
+        </div>
+        <p>Sets the file description reference to nil.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">fdref</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+  <span class="p">[</span><span class="n">self</span> <span class="nl">daemonTerminated:</span><span class="nb">nil</span><span class="p">];</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-50'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-50">&#182;</a>
+        </div>
+        <p>Called when the daemon has terminated.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">daemonTerminated:</span><span class="p">(</span><span class="n">NSNotification</span><span class="o">*</span><span class="p">)</span><span class="n">notification</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-51'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-51">&#182;</a>
+        </div>
+        <p>Removes this instance observer from the task termination notification.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[[</span><span class="n">NSNotificationCenter</span> <span class="n">defaultCenter</span><span class="p">]</span> <span class="nl">removeObserver:</span><span class="n">self</span> <span class="nl">name:</span><span class="n">NSTaskDidTerminateNotification</span> <span class="nl">object:</span><span class="n">daemonTask</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-52'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-52">&#182;</a>
+        </div>
+        <p>Invalidate the daemonTask, and the PID.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">self</span><span class="p">.</span><span class="n">daemonTask</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+  <span class="n">pid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-53'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-53">&#182;</a>
+        </div>
+        <p>Starts polling if the daemon has been started from outside the controller.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[</span><span class="n">self</span> <span class="n">startPoll</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-54'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-54">&#182;</a>
+        </div>
+        <p>Calls the proper callback.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">daemonStoppedCallback</span><span class="p">)</span>
+    <span class="n">daemonStoppedCallback</span><span class="p">();</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-55'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-55">&#182;</a>
+        </div>
+        <p>Called when the daemon failes to start.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">failedToStartDaemonTask:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="n">reason</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-56'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-56">&#182;</a>
+        </div>
+        <p>Executes the daemonFailedToStartCallback with the received reason.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">daemonFailedToStartCallback</span><span class="p">)</span>
+    <span class="n">daemonFailedToStartCallback</span><span class="p">(</span><span class="n">reason</span><span class="p">);</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-57'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-57">&#182;</a>
+        </div>
+        <p>Invalidates the daemonTask.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">self</span><span class="p">.</span><span class="n">daemonTask</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-58'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-58">&#182;</a>
+        </div>
+        <p>Checks if the daemon is running. Called after starting the daemon task, checks whenever
+the daemon is really running.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">checkIfDaemonIsRunning</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">daemon_pid</span><span class="p">([</span><span class="n">binaryName</span> <span class="n">UTF8String</span><span class="p">]))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-59'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-59">&#182;</a>
+        </div>
+        <p>Invalidate the timer, since it has been started.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="p">[</span><span class="n">checkStartupStatusTimer</span> <span class="n">invalidate</span><span class="p">];</span>
+    <span class="n">self</span><span class="p">.</span><span class="n">checkStartupStatusTimer</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-60'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-60">&#182;</a>
+        </div>
+        <p>Called the proper callback, passing the process id as an NSNumber.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="p">(</span><span class="n">daemonStartedCallback</span><span class="p">)</span>
+      <span class="n">daemonStartedCallback</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">pid</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-61'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-61">&#182;</a>
+        </div>
+        <p>Starts polling to check whenever the daemon is started.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">startPoll</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-62'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-62">&#182;</a>
+        </div>
+        <p>If the pollTimer is already started, invalidate it.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">pollTimer</span><span class="p">)</span>
+    <span class="p">[</span><span class="n">pollTimer</span> <span class="n">invalidate</span><span class="p">];</span>
+
+  <span class="n">self</span><span class="p">.</span><span class="n">pollTimer</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSTimer</span> <span class="nl">scheduledTimerWithTimeInterval:</span><span class="mf">0.33</span> <span class="nl">target:</span><span class="n">self</span> <span class="nl">selector:</span><span class="k">@selector</span><span class="p">(</span><span class="nl">poll:</span><span class="p">)</span> <span class="nl">userInfo:</span><span class="nb">nil</span> <span class="nl">repeats:</span><span class="n">true</span><span class="p">];</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-63'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-63">&#182;</a>
+        </div>
+        <p>Called from the pollTimer, every 330ms to check for the daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">poll:</span><span class="p">(</span><span class="n">NSTimer</span><span class="o">*</span><span class="p">)</span><span class="n">timer</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-64'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-64">&#182;</a>
+        </div>
+        <p>If the daemon is not running, then return.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">daemon_pid</span><span class="p">([</span><span class="n">binaryName</span> <span class="n">UTF8String</span><span class="p">]))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span><span class="p">;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-65'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-65">&#182;</a>
+        </div>
+        <p>If the daemonStartedCallback is set, call it passing the process id.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">if</span> <span class="p">(</span><span class="n">daemonStartedCallback</span><span class="p">)</span>
+    <span class="n">daemonStartedCallback</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">pid</span><span class="p">);</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-66'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-66">&#182;</a>
+        </div>
+        <p>Invalidate the pollTimer, and set the File Description Reference.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[</span><span class="n">pollTimer</span> <span class="n">invalidate</span><span class="p">];</span>
+  <span class="n">self</span><span class="p">.</span><span class="n">pollTimer</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+  <span class="n">fdref</span> <span class="o">=</span> <span class="n">kqueue_watch_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">self</span><span class="p">);</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-67'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-67">&#182;</a>
+        </div>
+        <p>Stops the daemon, and return if it was stopped or not.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="n">didStopWithArguments</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-68'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-68">&#182;</a>
+        </div>
+        <p>Launch a new task, passing the stop arguments.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="n">NSTask</span> <span class="o">*</span><span class="n">task</span> <span class="o">=</span> <span class="p">[[[</span><span class="n">NSTask</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">]</span> <span class="n">autorelease</span><span class="p">];</span>
+  <span class="n">task</span><span class="p">.</span><span class="n">launchPath</span> <span class="o">=</span> <span class="n">launchPath</span><span class="p">;</span>
+  <span class="n">task</span><span class="p">.</span><span class="n">arguments</span> <span class="o">=</span> <span class="n">stopArguments</span><span class="p">;</span>
+
+  <span class="p">[</span><span class="n">task</span> <span class="n">launch</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">task</span> <span class="n">waitUntilExit</span><span class="p">];</span>
+
+  <span class="k">return</span> <span class="n">task</span><span class="p">.</span><span class="n">terminationStatus</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Custom_Setters_and_Getters'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Custom_Setters_and_Getters">&#182;</a>
+        </div>
+        <h2>Custom Setters and Getters</h2>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="cp">#pragma mark - Custom Setters and Getters</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-70'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-70">&#182;</a>
+        </div>
+        <p>When setting the launchPath, means that the deamon to watch has changed. So this custom
+setters does what needed to invalidate timers, and prepare it to watch for another daemon.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">setLaunchPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="n">theLaunchPath</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">launchPath</span> <span class="o">!=</span> <span class="n">theLaunchPath</span><span class="p">)</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-71'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-71">&#182;</a>
+        </div>
+        <p>If the pollTimer is running, invalidate it and set it to nil.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="p">(</span><span class="n">pollTimer</span><span class="p">)</span> <span class="p">{</span>
+      <span class="p">[</span><span class="n">pollTimer</span> <span class="n">invalidate</span><span class="p">];</span>
+      <span class="n">self</span><span class="p">.</span><span class="n">pollTimer</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-72'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-72">&#182;</a>
+        </div>
+        <p>If the timer to check if the daemon has been started up, is running, then invalidate
+if and set it to nil.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="p">(</span><span class="n">checkStartupStatusTimer</span><span class="p">)</span> <span class="p">{</span>
+      <span class="p">[</span><span class="n">checkStartupStatusTimer</span> <span class="n">invalidate</span><span class="p">];</span>
+      <span class="n">self</span><span class="p">.</span><span class="n">checkStartupStatusTimer</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-73'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-73">&#182;</a>
+        </div>
+        <p>If there is the File Description Reference, then disable the callback.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="p">(</span><span class="n">fdref</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+      <span class="n">CFFileDescriptorDisableCallBacks</span><span class="p">(</span><span class="n">fdref</span><span class="p">,</span> <span class="n">kCFFileDescriptorReadCallBack</span><span class="p">);</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-74'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-74">&#182;</a>
+        </div>
+        <p>Replace the launchPath.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="p">[</span><span class="n">launchPath</span> <span class="n">release</span><span class="p">];</span>
+    <span class="n">launchPath</span> <span class="o">=</span> <span class="p">[</span><span class="n">theLaunchPath</span> <span class="n">retain</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-75'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-75">&#182;</a>
+        </div>
+        <p>And set the binary name to the last path component.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">self</span><span class="p">.</span><span class="n">binaryName</span> <span class="o">=</span> <span class="p">[</span><span class="n">launchPath</span> <span class="n">lastPathComponent</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-76'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-76">&#182;</a>
+        </div>
+        <p>Start polling to check when the daemon starts.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="p">(</span><span class="n">launchPath</span><span class="p">)</span>
+      <span class="p">[</span><span class="n">self</span> <span class="n">startPoll</span><span class="p">];</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-Memory_Management'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Memory_Management">&#182;</a>
+        </div>
+        <h2>Memory Management</h2>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="cp">#pragma mark - Memory Management</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-78'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-78">&#182;</a>
+        </div>
+        <p>When the instance is dealloc'ed, it is needed to release the retained properties.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">dealloc</span> <span class="p">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-79'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-79">&#182;</a>
+        </div>
+        <p>First, if the instance is observing for the task termination, then remove the instance
+from the notification center.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[[</span><span class="n">NSNotificationCenter</span> <span class="n">defaultCenter</span><span class="p">]</span> <span class="nl">removeObserver:</span><span class="n">self</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-80'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-80">&#182;</a>
+        </div>
+        <p>Release the public properties.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[</span><span class="n">startArguments</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">stopArguments</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">launchPath</span> <span class="n">release</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-81'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-81">&#182;</a>
+        </div>
+        <p>Release the hidden properties.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[</span><span class="n">binaryName</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">pollTimer</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">daemonTask</span> <span class="n">release</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-82'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-82">&#182;</a>
+        </div>
+        <p>Release all the callbacks.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[</span><span class="n">daemonStartedCallback</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">daemonStoppedCallback</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">daemonIsStartingCallback</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">daemonFailedToStartCallback</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">daemonIsStoppingCallback</span> <span class="n">release</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">daemonFailedToStopCallback</span> <span class="n">release</span><span class="p">];</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-83'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-83">&#182;</a>
+        </div>
+        <p>Call to super.</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="p">[</span><span class="n">super</span> <span class="n">dealloc</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="k">@end</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>
