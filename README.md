@@ -90,3 +90,9 @@ Credits
 
 Based in [DaemonController](https://github.com/mxcl/playdar.prefpane/blob/master/DaemonController.h),
 by [Max Howell](http://methylblue.com/).
+
+License
+-------
+
+Released under MIT License.
+
