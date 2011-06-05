@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta http-equiv="content-type" content="text/html;charset=utf-8">
-  <title>DaemonController.m</title>
+  <title>FFYDaemonController.m</title>
   <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <table cellspacing=0 cellpadding=0>
   <thead>
     <tr>
-      <th class=docs><h1>DaemonController.m</h1></th>
+      <th class=docs><h1>FFYDaemonController.m</h1></th>
       <th class=code></th>
     </tr>
   </thead>
@@ -21,8 +21,9 @@
         <div class="pilwrap">
           <a class="pilcrow" href="#section-1">&#182;</a>
         </div>
-        <p> <!-- DaemonController -->
- Based in <em>DaemonController</em> by <a href="http://github.com/mxcl/playdar.prefpane">Max Howell</a>.</p>
+        <p> <!-- FFYDaemonController -->
+ Based in <em>DaemonController</em> by
+ <a href="https://github.com/mxcl/playdar.prefpane/blob/master/DaemonController.h">Max Howell</a>.</p>
       </td>
       <td class=code>
         <div class='highlight'><pre></pre></div>
@@ -49,8 +50,8 @@ feedback about when the process is stopped by an external tool.</p>
         </div>
         <h2>Installation</h2>
 
-<p>To install, just add the DaemonController.h and DaemonController.m files to your
-project. Then, be shure to add DaemonController.m to your selected target.</p>
+<p>To install, just add the FFYDaemonController.h and FFYDaemonController.m files to your
+project. Then, be shure to add FFYDaemonController.m to your selected target.</p>
       </td>
       <td class=code>
         <div class='highlight'><pre></pre></div>
@@ -63,14 +64,14 @@ project. Then, be shure to add DaemonController.m to your selected target.</p>
         </div>
         <h2>Usage</h2>
 
-<p>Just include the DaemonController.h file in your Class:</p>
+<p>Just include the FFYDaemonController.h file in your Class:</p>
 
-<pre><code>include "DaemonController.h";
+<pre><code>include "FFYDaemonController.h";
 </code></pre>
 
 <p>Then, create an instance of it</p>
 
-<pre><code>DaemonController *daemonController = [[DaemonController alloc]
+<pre><code>FFYDaemonController *daemonController = [[FFYDaemonController alloc]
   init];
 </code></pre>
 
@@ -104,7 +105,7 @@ section in order to get more information on how to add them.</p>
       </td>
       <td class=code>
         <div class='highlight'><pre><span class="cp">#import &lt;sys/sysctl.h&gt;</span>
-<span class="cp">#import &quot;DaemonController.h&quot;</span></pre></div>
+<span class="cp">#import &quot;FFYDaemonController.h&quot;</span></pre></div>
       </td>
     </tr>
     <tr id='section-Hidden_Methods'>
@@ -124,7 +125,7 @@ until there&rsquo;s a running process of it.</p>
 <p>The daemon task holds the active task, in case that the daemon was initialized by us.</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre><span class="k">@interface</span> <span class="nc">DaemonController</span><span class="p">(</span><span class="cm">/* Hidden Methods */</span><span class="p">)</span>
+        <div class='highlight'><pre><span class="k">@interface</span> <span class="nc">FFYDaemonController</span><span class="p">(</span><span class="cm">/* Hidden Methods */</span><span class="p">)</span>
 <span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">retain</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">binaryName</span><span class="p">;</span>
 <span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">retain</span><span class="p">)</span> <span class="n">NSTimer</span>  <span class="o">*</span><span class="n">pollTimer</span><span class="p">;</span>
 <span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">retain</span><span class="p">)</span> <span class="n">NSTask</span>   <span class="o">*</span><span class="n">daemonTask</span><span class="p">;</span>
@@ -312,7 +313,7 @@ runloop.</p>
 a daemon.</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre><span class="k">@implementation</span> <span class="nc">DaemonController</span></pre></div>
+        <div class='highlight'><pre><span class="k">@implementation</span> <span class="nc">FFYDaemonController</span></pre></div>
       </td>
     </tr>
     <tr id='section-18'>
