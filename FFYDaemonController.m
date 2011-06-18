@@ -227,7 +227,7 @@ static inline CFFileDescriptorRef kqueue_watch_pid(pid_t pid, id self) {
     pid = daemonTask.processIdentifier;
 
     // Continuosly check that the daemon is up and running after a delay of 0.2s.
-    self.checkStartupStatusTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(checkIfDaemonIsRunning:) userInfo:nil repeats:true];
+    self.checkStartupStatusTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(checkIfDaemonIsRunning) userInfo:nil repeats:true];
   } @catch (NSException *exception) {
     // If there's an exception while trying to initialize the daemon, then
     // notify about the problem.
